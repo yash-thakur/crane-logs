@@ -19,6 +19,9 @@ import { FilterIcon } from "../icons/sidebar/filter-icon";
 import { useSidebarContext } from "../layout/layout-context";
 import { ChangeLogIcon } from "../icons/sidebar/changelog-icon";
 import { usePathname } from "next/navigation";
+import { DriverIcon } from "../icons/sidebar/driver-icon";
+import { LogsIcon } from "../icons/sidebar/logs-icon";
+import { InwardPaymentIcon } from "../icons/sidebar/inward-payment-icon";
 
 export const SidebarWrapper = () => {
 	const pathname = usePathname();
@@ -54,7 +57,7 @@ export const SidebarWrapper = () => {
 						<SidebarItem
 							isActive={pathname === "/daily-logs"}
 							title="Daily Logs"
-							icon={<AccountsIcon />}
+							icon={<LogsIcon />}
 							href="daily-logs"
 						/>
 						<SidebarMenu title="Records">
@@ -73,7 +76,7 @@ export const SidebarWrapper = () => {
 							<SidebarItem
 								isActive={pathname === "/drivers"}
 								title="Drivers"
-								icon={<AccountsIcon />}
+								icon={<DriverIcon />}
 								href="drivers"
 							/>
 						</SidebarMenu>
@@ -82,7 +85,7 @@ export const SidebarWrapper = () => {
 							<SidebarItem
 								isActive={pathname === "/inward-payment"}
 								title="Inward Payment"
-								icon={<CustomersIcon />}
+								icon={<InwardPaymentIcon />}
 								href="inward-payment"
 							/>
 							<SidebarItem
