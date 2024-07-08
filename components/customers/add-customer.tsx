@@ -1,22 +1,16 @@
 import {
 	Button,
-	DateInput,
 	Input,
 	Modal,
 	ModalBody,
 	ModalContent,
 	ModalFooter,
 	ModalHeader,
-	Select,
-	SelectItem,
 	Switch,
 	Textarea,
-	TimeInput,
 	useDisclosure,
 } from "@nextui-org/react";
 import React from "react";
-import { CalendarIcon } from "./CalendarIcon";
-import { customers, drivers, vehicles } from "./dummyData";
 import { PlusIcon } from "../icons/PlusIcon";
 
 export const AddCustomer = () => {

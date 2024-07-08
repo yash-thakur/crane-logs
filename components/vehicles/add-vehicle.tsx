@@ -1,6 +1,5 @@
 import {
 	Button,
-	DateInput,
 	DatePicker,
 	Divider,
 	Input,
@@ -13,7 +12,7 @@ import {
 	useDisclosure,
 } from "@nextui-org/react";
 import React from "react";
-import { CalendarIcon } from "./CalendarIcon";
+import { CalendarIcon } from "../icons/CalendarIcon";
 import { PlusIcon } from "../icons/PlusIcon";
 
 export const AddVehicle = () => {

@@ -1,5 +1,7 @@
 import React from "react";
-export const CalendarIcon = (props) => (
+import { IconSvgProps } from "./types";
+
+export const CalendarIcon = (props: IconSvgProps) => (
 	<svg
 		aria-hidden="true"
 		fill="none"

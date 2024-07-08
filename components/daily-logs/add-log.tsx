@@ -16,7 +16,7 @@ import {
 	useDisclosure,
 } from "@nextui-org/react";
 import React from "react";
-import { CalendarIcon } from "./CalendarIcon";
+import { CalendarIcon } from "../icons/CalendarIcon";
 import { customers, drivers, vehicles } from "./dummyData";
 import { PlusIcon } from "../icons/PlusIcon";
 
