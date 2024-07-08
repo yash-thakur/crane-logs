@@ -1,9 +1,9 @@
 import React from "react";
-import Customers from "@/components/customers";
+import Drivers from "@/components/drivers";
 import { SessionProvider } from "next-auth/react";
 
 const accounts = async () => {
-	return <Customers />;
+	return <Drivers />;
 };
 
 export default accounts;

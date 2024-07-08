@@ -73,7 +73,7 @@ model Driver {
   yearsOfExperience Int
   isActive        Boolean  @default(true)
   salary Int?
-  aadhar Int
+  aadhar String
   createdAt  DateTime   @default(now())
   updatedAt  DateTime   @updatedAt
   expenses DailyExpense[]
@@ -95,7 +95,6 @@ model Vehicle {
   insuranceNumber      String
   insuranceExpiryDate  DateTime
   isActive             Boolean  @default(true)
-  type String
   puc DateTime?
   fitness DateTime?
   tax DateTime?

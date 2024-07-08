@@ -1,9 +1,9 @@
 import React from "react";
-import Entries from "@/components/entries";
+import DailyLogs from "@/components/daily-logs";
 import { SessionProvider } from "next-auth/react";
 
 const accounts = async () => {
-	return <Entries />;
+	return <DailyLogs />;
 };
 
 export default accounts;
