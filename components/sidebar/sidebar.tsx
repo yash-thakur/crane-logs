@@ -7,7 +7,7 @@ import { PaymentsIcon } from "../icons/sidebar/payments-icon";
 import { BalanceIcon } from "../icons/sidebar/balance-icon";
 import { AccountsIcon } from "../icons/sidebar/accounts-icon";
 import { CustomersIcon } from "../icons/sidebar/customers-icon";
-import { VehicleIcon } from "../icons/sidebar/vehicle-icon";
+import { CraneIcon } from "../icons/sidebar/crane-icon";
 import { ReportsIcon } from "../icons/sidebar/reports-icon";
 import { DevIcon } from "../icons/sidebar/dev-icon";
 import { ViewIcon } from "../icons/sidebar/view-icon";
@@ -67,7 +67,7 @@ export const SidebarWrapper = () => {
 							<SidebarItem
 								isActive={pathname === "/vehicles"}
 								title="Vehicles"
-								icon={<VehicleIcon />}
+								icon={<CraneIcon />}
 								href="vehicles"
 							/>
 							<SidebarItem
