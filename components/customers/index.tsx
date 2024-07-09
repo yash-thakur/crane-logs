@@ -19,6 +19,12 @@ import {
 	Selection,
 	ChipProps,
 	SortDescriptor,
+	useDisclosure,
+	Modal,
+	ModalContent,
+	ModalBody,
+	ModalFooter,
+	ModalHeader,
 } from "@nextui-org/react";
 import { VerticalDotsIcon } from "./VerticalDotsIcon";
 import { ChevronDownIcon } from "./ChevronDownIcon";
@@ -26,6 +32,8 @@ import { SearchIcon } from "./SearchIcon";
 import { columns, users, statusOptions } from "./data";
 import { capitalize } from "./utils";
 import { AddCustomer } from "./add-customer";
+import { toast } from "sonner";
+import { TrashIcon } from "../icons/accounts/trash-icon";
 
 const statusColorMap: Record<string, ChipProps["color"]> = {
 	active: "success",
@@ -33,11 +41,26 @@ const statusColorMap: Record<string, ChipProps["color"]> = {
 	vacation: "warning",
 };
 
-const INITIAL_VISIBLE_COLUMNS = ["name", "role", "status", "actions"];
+const INITIAL_VISIBLE_COLUMNS = [
+	"name",
+	"contactPerson",
+	"phoneNumber",
+	"gstin",
+	"actions",
+];
 
-type User = (typeof users)[0];
+interface Customer {
+	id: number;
+	name: string;
+	email: string;
+	phoneNumber: string;
+	contactPerson: string;
+	gstin: string;
+	isActive: boolean;
+}
 
 export default function Customers() {
+	const [customers, setCustomers] = React.useState<Customer[]>([]);
 	const [filterValue, setFilterValue] = React.useState("");
 	const [selectedKeys, setSelectedKeys] = React.useState<Selection>(
 		new Set([])
@@ -51,6 +74,70 @@ export default function Customers() {
 		column: "age",
 		direction: "ascending",
 	});
+	const { isOpen, onOpen, onClose, onOpenChange } = useDisclosure();
+	const [currentCustomer, setCurrentCustomer] = React.useState<number>();
+	const [isDeleting, setIsDeleting] = React.useState(false);
+
+	const fetchCustomers = async () => {
+		try {
+			const response = await fetch("/api/customers");
+			if (!response.ok) {
+				throw new Error("Failed to fetch customers");
+			}
+			const data = await response.json();
+			setCustomers(data);
+		} catch (error) {
+			console.error("Error fetching customers:", error);
+		}
+	};
+
+	React.useEffect(() => {
+		fetchCustomers();
+	}, []);
+
+	const deleteCustomer = async (onClose: () => void) => {
+		setIsDeleting(true);
+		try {
+			const response = await fetch(`/api/customers/id/${currentCustomer}`, {
+				method: "DELETE",
+			});
+			if (!response.ok) {
+				toast.error("Failed to delete customer");
+			} else {
+				toast.success("Customer deleted successfully!");
+			}
+		} catch (e) {
+			e instanceof Error
+				? toast.error(e.toString())
+				: toast.error("An error occurred");
+		} finally {
+			setIsDeleting(false);
+			fetchCustomers();
+			onClose();
+		}
+	};
+
+	const deleteSelectedCustomers = async (onClose: () => void) => {
+		setIsDeleting(true);
+		try {
+			const response = await fetch(`/api/customers/id/${currentCustomer}`, {
+				method: "DELETE",
+			});
+			if (!response.ok) {
+				toast.error("Failed to delete customers");
+			} else {
+				toast.success("Customers deleted successfully!");
+			}
+		} catch (e) {
+			e instanceof Error
+				? toast.error(e.toString())
+				: toast.error("An error occurred");
+		} finally {
+			setIsDeleting(false);
+			fetchCustomers();
+			onClose();
+		}
+	};
 
 	// const [page, setPage] = React.useState(1);
 
@@ -65,24 +152,15 @@ export default function Customers() {
 	}, [visibleColumns]);
 
 	const filteredItems = React.useMemo(() => {
-		let filteredUsers = [...users];
+		let filteredUsers = [...customers];
 
 		if (hasSearchFilter) {
 			filteredUsers = filteredUsers.filter((user) =>
 				user.name.toLowerCase().includes(filterValue.toLowerCase())
 			);
 		}
-		if (
-			statusFilter !== "all" &&
-			Array.from(statusFilter).length !== statusOptions.length
-		) {
-			filteredUsers = filteredUsers.filter((user) =>
-				Array.from(statusFilter).includes(user.status)
-			);
-		}
-
 		return filteredUsers;
-	}, [users, filterValue, statusFilter]);
+	}, [customers, filterValue, statusFilter]);
 
 	// const pages = Math.ceil(filteredItems.length / rowsPerPage);
 
@@ -94,70 +172,86 @@ export default function Customers() {
 	// }, [page, filteredItems, rowsPerPage]);
 
 	const sortedItems = React.useMemo(() => {
-		return [...filteredItems].sort((a: User, b: User) => {
-			const first = a[sortDescriptor.column as keyof User] as number;
-			const second = b[sortDescriptor.column as keyof User] as number;
+		return [...filteredItems].sort((a: Customer, b: Customer) => {
+			const first = a[sortDescriptor.column as keyof Customer] as number;
+			const second = b[sortDescriptor.column as keyof Customer] as number;
 			const cmp = first < second ? -1 : first > second ? 1 : 0;
 
 			return sortDescriptor.direction === "descending" ? -cmp : cmp;
 		});
 	}, [sortDescriptor, filteredItems]);
 
-	const renderCell = React.useCallback((user: User, columnKey: React.Key) => {
-		const cellValue = user[columnKey as keyof User];
+	const renderCell = React.useCallback(
+		(customer: Customer, columnKey: React.Key) => {
+			const cellValue = customer[columnKey as keyof Customer];
 
-		switch (columnKey) {
-			case "name":
-				return (
-					<User
-						avatarProps={{ radius: "lg", src: user.avatar }}
-						description={user.email}
-						name={cellValue}
-					>
-						{user.email}
-					</User>
-				);
-			case "role":
-				return (
-					<div className="flex flex-col">
-						<p className="text-bold text-small capitalize">{cellValue}</p>
-						<p className="text-bold text-tiny capitalize text-default-400">
-							{user.team}
-						</p>
-					</div>
-				);
-			case "status":
-				return (
-					<Chip
-						className="capitalize"
-						color={statusColorMap[user.status]}
-						size="sm"
-						variant="flat"
-					>
-						{cellValue}
-					</Chip>
-				);
-			case "actions":
-				return (
-					<div className="relative flex justify-end items-center gap-2">
-						<Dropdown>
-							<DropdownTrigger>
-								<Button isIconOnly size="sm" variant="light">
-									<VerticalDotsIcon className="text-default-300" />
-								</Button>
-							</DropdownTrigger>
-							<DropdownMenu>
-								<DropdownItem>View</DropdownItem>
-								<DropdownItem>Edit</DropdownItem>
-								<DropdownItem>Delete</DropdownItem>
-							</DropdownMenu>
-						</Dropdown>
-					</div>
-				);
-			default:
-				return cellValue;
-		}
-	}, []);
+			switch (columnKey) {
+				case "name":
+					return (
+						<User
+							avatarProps={{ radius: "lg" }}
+							description={customer.email}
+							name={cellValue}
+						>
+							{customer.email}
+						</User>
+					);
+				case "contactPerson":
+					return (
+						<div className="flex flex-col">
+							<p className="text-bold text-small capitalize">{cellValue}</p>
+							{/* <p className="text-bold text-tiny capitalize text-default-400">
+								{user.contactPerson}
+							</p> */}
+						</div>
+					);
+				case "phoneNumber":
+					return (
+						<div className="flex flex-col">
+							<p className="text-bold text-small capitalize">{cellValue}</p>
+						</div>
+					);
+				case "gstin":
+					return (
+						<Chip
+							className="capitalize"
+							color={statusColorMap[customer.gstin]}
+							size="sm"
+							variant="flat"
+						>
+							{cellValue}
+						</Chip>
+					);
+				case "actions":
+					return (
+						<div className="relative flex justify-end items-center gap-2">
+							<Dropdown>
+								<DropdownTrigger>
+									<Button isIconOnly size="sm" variant="light">
+										<VerticalDotsIcon className="text-default-300" />
+									</Button>
+								</DropdownTrigger>
+								<DropdownMenu>
+									<DropdownItem>View</DropdownItem>
+									<DropdownItem>Edit</DropdownItem>
+									<DropdownItem
+										onClick={() => {
+											setCurrentCustomer(customer.id);
+											onOpen();
+										}}
+									>
+										Delete
+									</DropdownItem>
+								</DropdownMenu>
+							</Dropdown>
+						</div>
+					);
+				default:
+					return cellValue;
+			}
+		},
+		[]
+	);
 
 	// const onNextPage = React.useCallback(() => {
 	//   if (page < pages) {
@@ -191,6 +285,8 @@ export default function Customers() {
 	}, []);
 
 	const topContent = React.useMemo(() => {
+		const selectedItems =
+			selectedKeys !== "all" ? selectedKeys.size : customers.length;
 		return (
 			<div className="flex flex-col gap-4">
 				<div className="flex justify-between gap-3 items-end">
@@ -204,6 +300,15 @@ export default function Customers() {
 						onValueChange={onSearchChange}
 					/>
 					<div className="flex gap-3">
+						{selectedItems > 0 && (
+							<Button
+								onPress={onOpen}
+								color="secondary"
+								endContent={<TrashIcon />}
+							>
+								Delete {selectedItems} Customers
+							</Button>
+						)}
 						<Dropdown>
 							<DropdownTrigger className="hidden sm:flex">
 								<Button
@@ -252,7 +357,12 @@ export default function Customers() {
 								))}
 							</DropdownMenu>
 						</Dropdown>
-						<AddCustomer />
+						<AddCustomer
+							onCustomerAdded={() => {
+								toast.success("Customer added successfully!");
+								fetchCustomers();
+							}}
+						/>
 					</div>
 				</div>
 				{/* <div className="flex justify-between items-center">
@@ -279,6 +389,7 @@ export default function Customers() {
 		// onRowsPerPageChange,
 		users.length,
 		hasSearchFilter,
+		selectedKeys,
 	]);
 
 	// const bottomContent = React.useMemo(() => {
@@ -312,8 +423,33 @@ export default function Customers() {
 
 	return (
 		<div className="m-4">
+			<Modal
+				isOpen={isOpen}
+				onClose={() => setCurrentCustomer(undefined)}
+				onOpenChange={onOpenChange}
+				placement="top-center"
+			>
+				<ModalContent>
+					{(onClose) => (
+						<>
+							<ModalHeader>Are you sure you want to delete ?</ModalHeader>
+							<ModalFooter>
+								<Button color="danger" variant="flat" onPress={onClose}>
+									Cancel
+								</Button>
+								<Button
+									isLoading={isDeleting}
+									color="primary"
+									onPress={() => deleteCustomer(onClose)}
+								>
+									Delete
+								</Button>
+							</ModalFooter>
+						</>
+					)}
+				</ModalContent>
+			</Modal>
 			<Table
-				aria-label="Example table with custom cells, pagination and sorting"
 				isHeaderSticky
 				// bottomContent={bottomContent}
 				bottomContentPlacement="outside"
