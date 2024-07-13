@@ -51,7 +51,7 @@ model Customer {
   openingBalance Float?  @default(0)
   phoneNumber String?
   address String? @db.VarChar(500)
-  gstin String? @unique
+  gstin String?
   email String?
   entryLogs EntryLog[]
   isActive        Boolean   @default(true)

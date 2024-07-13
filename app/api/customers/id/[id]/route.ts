@@ -80,3 +80,51 @@ export async function DELETE(
 		);
 	}
 }
+
+// PATCH method to update a customer
+export async function PATCH(
+	request: NextRequest,
+	{ params }: { params: { id: string } }
+) {
+	try {
+		const id = parseInt(params.id);
+		const body = await request.json();
+
+		const updatedCustomer = await prisma.customer.update({
+			where: { id },
+			data: body,
+		});
+
+		return NextResponse.json(updatedCustomer);
+	} catch (error) {
+		console.error("Error updating customer:", error);
+		return NextResponse.json(
+			{ error: "Error updating customer" },
+			{ status: 500 }
+		);
+	}
+}
+
+// POST method to update a customer (alternative to PATCH)
+export async function POST(
+	request: NextRequest,
+	{ params }: { params: { id: string } }
+) {
+	try {
+		const id = parseInt(params.id);
+		const body = await request.json();
+
+		const updatedCustomer = await prisma.customer.update({
+			where: { id },
+			data: body,
+		});
+
+		return NextResponse.json(updatedCustomer);
+	} catch (error) {
+		console.error("Error updating customer:", error);
+		return NextResponse.json(
+			{ error: "Error updating customer" },
+			{ status: 500 }
+		);
+	}
+}

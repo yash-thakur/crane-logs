@@ -12,30 +12,53 @@ import {
 } from "@nextui-org/react";
 import React, { useState } from "react";
 import { PlusIcon } from "../icons/PlusIcon";
+import { Customer } from ".";
+import { toast } from "sonner";
 
 interface AddCustomerFormProps {
 	onCustomerAdded: () => void;
+	currentCustomer?: Customer;
+	mode: "EDIT" | "NEW";
+	resetMode: () => void;
 }
 
-export const AddCustomer = ({ onCustomerAdded }: AddCustomerFormProps) => {
+export const AddCustomer = ({
+	onCustomerAdded,
+	currentCustomer,
+	mode,
+	resetMode,
+}: AddCustomerFormProps) => {
 	const { isOpen, onOpen, onOpenChange } = useDisclosure();
-	const [name, setName] = useState("");
-	const [email, setEmail] = useState("");
-	const [contactPerson, setContactPerson] = useState("");
-	const [phoneNumber, setPhoneNumber] = useState("");
-	const [openingBalance, setOpeningBalance] = useState("");
-	const [address, setAddress] = useState("");
-	const [isActive, setIsActive] = useState(true);
-	const [gstin, setGSTIN] = useState("");
+	const [name, setName] = useState(currentCustomer?.name || "");
+	const [email, setEmail] = useState(currentCustomer?.email || "");
+	const [contactPerson, setContactPerson] = useState(
+		currentCustomer?.contactPerson || ""
+	);
+	const [phoneNumber, setPhoneNumber] = useState(
+		currentCustomer?.phoneNumber || ""
+	);
+	const [openingBalance, setOpeningBalance] = useState(
+		currentCustomer?.openingBalance || ""
+	);
+	const [address, setAddress] = useState(currentCustomer?.address || "");
+	const [isActive, setIsActive] = useState<boolean>(
+		currentCustomer?.isActive || true
+	);
+	const [gstin, setGSTIN] = useState(currentCustomer?.gstin || "");
 	const [isSaving, setIsSaving] = useState(false);
 
 	const handleSubmit = async (
-		e: React.MouseEvent<HTMLButtonElement, MouseEvent>
+		e: React.MouseEvent<HTMLButtonElement, MouseEvent>,
+		onClose: () => void
 	) => {
 		e.preventDefault();
 		setIsSaving(true);
+		let customerEndpoint = "/api/customers";
+		if (mode === "EDIT") {
+			customerEndpoint = `${customerEndpoint}/id/${currentCustomer?.id}}`;
+		}
 		try {
-			const response = await fetch("/api/customers", {
+			const response = await fetch(customerEndpoint, {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify({
@@ -49,6 +72,8 @@ export const AddCustomer = ({ onCustomerAdded }: AddCustomerFormProps) => {
 					isActive,
 				}),
 			});
+
+			console.log("Response: ", response);
 			if (!response.ok) {
 				throw new Error("Failed to add customer");
 			}
@@ -61,12 +86,22 @@ export const AddCustomer = ({ onCustomerAdded }: AddCustomerFormProps) => {
 			setIsActive(true);
 			setGSTIN("");
 			setIsSaving(false);
+			if (mode === "EDIT") {
+				onClose();
+			}
 			onCustomerAdded();
 		} catch (error) {
+			toast.error(`Failed to ${mode === "EDIT" ? "update" : "add"} customer!`);
 			console.error("Error adding customer:", error);
 			setIsSaving(false);
 		}
 	};
+
+	React.useEffect(() => {
+		if (mode === "EDIT" && currentCustomer) {
+			onOpen();
+		}
+	}, [currentCustomer, mode]);
 
 	const paymentStatus = [
 		{
@@ -94,6 +129,7 @@ export const AddCustomer = ({ onCustomerAdded }: AddCustomerFormProps) => {
 					size="5xl"
 					onOpenChange={onOpenChange}
 					placement="top-center"
+					onClose={() => resetMode()}
 				>
 					<ModalContent>
 						{(onClose) => (
@@ -169,7 +205,7 @@ export const AddCustomer = ({ onCustomerAdded }: AddCustomerFormProps) => {
 													<Button
 														color="primary"
 														isLoading={isSaving}
-														onClick={(e) => handleSubmit(e)}
+														onClick={(e) => handleSubmit(e, onClose)}
 													>
 														Save
 													</Button>

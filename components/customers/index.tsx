@@ -49,7 +49,7 @@ const INITIAL_VISIBLE_COLUMNS = [
 	"actions",
 ];
 
-interface Customer {
+export interface Customer {
 	id: number;
 	name: string;
 	email: string;
@@ -57,6 +57,8 @@ interface Customer {
 	contactPerson: string;
 	gstin: string;
 	isActive: boolean;
+	address: string;
+	openingBalance: string;
 }
 
 export default function Customers() {
@@ -75,8 +77,9 @@ export default function Customers() {
 		direction: "ascending",
 	});
 	const { isOpen, onOpen, onClose, onOpenChange } = useDisclosure();
-	const [currentCustomer, setCurrentCustomer] = React.useState<number>();
+	const [currentCustomer, setCurrentCustomer] = React.useState<Customer>();
 	const [isDeleting, setIsDeleting] = React.useState(false);
+	const [mode, setMode] = React.useState("");
 
 	const fetchCustomers = async () => {
 		try {
@@ -95,10 +98,12 @@ export default function Customers() {
 		fetchCustomers();
 	}, []);
 
+	React.useEffect(() => {}, [mode, currentCustomer]);
+
 	const deleteCustomer = async (onClose: () => void) => {
 		setIsDeleting(true);
 		try {
-			const response = await fetch(`/api/customers/id/${currentCustomer}`, {
+			const response = await fetch(`/api/customers/id/${currentCustomer?.id}`, {
 				method: "DELETE",
 			});
 			if (!response.ok) {
@@ -233,10 +238,18 @@ export default function Customers() {
 								</DropdownTrigger>
 								<DropdownMenu>
 									<DropdownItem>View</DropdownItem>
-									<DropdownItem>Edit</DropdownItem>
 									<DropdownItem
 										onClick={() => {
-											setCurrentCustomer(customer.id);
+											setCurrentCustomer(customer);
+											setMode("EDIT");
+										}}
+									>
+										Edit
+									</DropdownItem>
+									<DropdownItem
+										onClick={() => {
+											setCurrentCustomer(customer);
+											setMode("DELETE");
 											onOpen();
 										}}
 									>
@@ -362,6 +375,13 @@ export default function Customers() {
 								toast.success("Customer added successfully!");
 								fetchCustomers();
 							}}
+							mode={mode === "EDIT" ? "EDIT" : "NEW"}
+							currentCustomer={currentCustomer}
+							key={mode}
+							resetMode={() => {
+								setMode("");
+								setCurrentCustomer(undefined);
+							}}
 						/>
 					</div>
 				</div>
@@ -390,6 +410,8 @@ export default function Customers() {
 		users.length,
 		hasSearchFilter,
 		selectedKeys,
+		mode,
+		currentCustomer,
 	]);
 
 	// const bottomContent = React.useMemo(() => {
@@ -425,7 +447,10 @@ export default function Customers() {
 		<div className="m-4">
 			<Modal
 				isOpen={isOpen}
-				onClose={() => setCurrentCustomer(undefined)}
+				onClose={() => {
+					setCurrentCustomer(undefined);
+					setMode("");
+				}}
 				onOpenChange={onOpenChange}
 				placement="top-center"
 			>
