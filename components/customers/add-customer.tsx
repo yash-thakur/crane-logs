@@ -103,21 +103,6 @@ export const AddCustomer = ({
 		}
 	}, [currentCustomer, mode]);
 
-	const paymentStatus = [
-		{
-			key: "PENDING",
-			label: "Pending",
-		},
-		{
-			key: "PARTIALLY_PAID",
-			label: "Partial",
-		},
-		{
-			key: "PAID",
-			label: "Paid",
-		},
-	];
-
 	return (
 		<div>
 			<>

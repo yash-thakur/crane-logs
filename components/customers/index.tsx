@@ -25,15 +25,17 @@ import {
 	ModalBody,
 	ModalFooter,
 	ModalHeader,
+	Spinner,
 } from "@nextui-org/react";
-import { VerticalDotsIcon } from "./VerticalDotsIcon";
-import { ChevronDownIcon } from "./ChevronDownIcon";
-import { SearchIcon } from "./SearchIcon";
 import { columns, users, statusOptions } from "./data";
 import { capitalize } from "./utils";
 import { AddCustomer } from "./add-customer";
 import { toast } from "sonner";
 import { TrashIcon } from "../icons/accounts/trash-icon";
+import { useRouter } from "next/navigation";
+import { VerticalDotsIcon } from "../icons/VerticalDotsIcon";
+import { ChevronDownIcon } from "../icons/ChevronDownIcon";
+import { SearchIcon } from "../icons/searchicon";
 
 const statusColorMap: Record<string, ChipProps["color"]> = {
 	active: "success",
@@ -80,8 +82,14 @@ export default function Customers() {
 	const [currentCustomer, setCurrentCustomer] = React.useState<Customer>();
 	const [isDeleting, setIsDeleting] = React.useState(false);
 	const [mode, setMode] = React.useState("");
+	const [isLoading, setIsLoading] = React.useState(true);
+	const router = useRouter();
+
+	const loadingState =
+		isLoading || customers?.length === 0 ? "loading" : "idle";
 
 	const fetchCustomers = async () => {
+		setIsLoading(true);
 		try {
 			const response = await fetch("/api/customers");
 			if (!response.ok) {
@@ -92,6 +100,7 @@ export default function Customers() {
 		} catch (error) {
 			console.error("Error fetching customers:", error);
 		}
+		setIsLoading(false);
 	};
 
 	React.useEffect(() => {
@@ -176,6 +185,14 @@ export default function Customers() {
 	//   return filteredItems.slice(start, end);
 	// }, [page, filteredItems, rowsPerPage]);
 
+	const openCustomer = (
+		e: React.MouseEvent<HTMLDivElement, MouseEvent>,
+		customer: Customer
+	) => {
+		e.preventDefault();
+		router.push(`/customers/${customer.id}`);
+	};
+
 	const sortedItems = React.useMemo(() => {
 		return [...filteredItems].sort((a: Customer, b: Customer) => {
 			const first = a[sortDescriptor.column as keyof Customer] as number;
@@ -197,13 +214,17 @@ export default function Customers() {
 							avatarProps={{ radius: "lg" }}
 							description={customer.email}
 							name={cellValue}
+							onClick={(e) => openCustomer(e, customer)}
 						>
 							{customer.email}
 						</User>
 					);
 				case "contactPerson":
 					return (
-						<div className="flex flex-col">
+						<div
+							className="flex flex-col"
+							onClick={(e) => openCustomer(e, customer)}
+						>
 							<p className="text-bold text-small capitalize">{cellValue}</p>
 							{/* <p className="text-bold text-tiny capitalize text-default-400">
 								{user.contactPerson}
@@ -212,7 +233,10 @@ export default function Customers() {
 					);
 				case "phoneNumber":
 					return (
-						<div className="flex flex-col">
+						<div
+							className="flex flex-col"
+							onClick={(e) => openCustomer(e, customer)}
+						>
 							<p className="text-bold text-small capitalize">{cellValue}</p>
 						</div>
 					);
@@ -223,6 +247,7 @@ export default function Customers() {
 							color={statusColorMap[customer.gstin]}
 							size="sm"
 							variant="flat"
+							onClick={(e) => openCustomer(e, customer)}
 						>
 							{cellValue}
 						</Chip>
@@ -372,7 +397,11 @@ export default function Customers() {
 						</Dropdown>
 						<AddCustomer
 							onCustomerAdded={() => {
-								toast.success("Customer added successfully!");
+								toast.success(
+									`Customer ${
+										mode === "EDIT" ? "updated" : "added"
+									} successfully!`
+								);
 								fetchCustomers();
 							}}
 							mode={mode === "EDIT" ? "EDIT" : "NEW"}
@@ -500,7 +529,12 @@ export default function Customers() {
 						</TableColumn>
 					)}
 				</TableHeader>
-				<TableBody emptyContent={"No users found"} items={sortedItems}>
+				<TableBody
+					loadingContent={<Spinner />}
+					loadingState={loadingState}
+					emptyContent={"No users found"}
+					items={sortedItems}
+				>
 					{(item) => (
 						<TableRow key={item.id}>
 							{(columnKey) => (

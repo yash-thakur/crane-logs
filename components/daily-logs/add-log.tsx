@@ -15,13 +15,24 @@ import {
 	TimeInput,
 	useDisclosure,
 } from "@nextui-org/react";
-import React from "react";
+import React, { useState } from "react";
 import { CalendarIcon } from "../icons/CalendarIcon";
 import { customers, drivers, vehicles } from "./dummyData";
 import { PlusIcon } from "../icons/PlusIcon";
 
 export const AddEntry = () => {
 	const { isOpen, onOpen, onOpenChange } = useDisclosure();
+	const [selectedFile, setSelectedFile] = useState<File | null>(null);
+	const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+	const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+		const file = event.target.files?.[0];
+		if (file) {
+			setSelectedFile(file);
+			const url = URL.createObjectURL(file);
+			setPreviewUrl(url);
+		}
+	};
 
 	const paymentStatus = [
 		{
@@ -130,6 +141,26 @@ export const AddEntry = () => {
 										</Select>
 									</div>
 									<Textarea label="Work Details" />
+									<div className="flex flex-col gap-2">
+										<div className="flex gap-2">
+											<Input
+												type="file"
+												accept="image/*"
+												onChange={handleFileChange}
+												className="max-w-xs"
+												label="Upload Image"
+											/>
+										</div>
+										{previewUrl && (
+											<div className="mt-2">
+												<img
+													src={previewUrl}
+													alt="Preview"
+													className="max-w-xs rounded-lg"
+												/>
+											</div>
+										)}
+									</div>
 								</ModalBody>
 								<ModalFooter>
 									<Button variant="flat" onClick={onClose}>

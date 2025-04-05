@@ -13,19 +13,26 @@ import {
 	Dropdown,
 	DropdownMenu,
 	DropdownItem,
-	Chip,
-	User,
 	Pagination,
 	Selection,
 	ChipProps,
 	SortDescriptor,
+	useDisclosure,
+	Modal,
+	ModalContent,
+	ModalHeader,
+	ModalFooter,
 } from "@nextui-org/react";
-import { VerticalDotsIcon } from "./VerticalDotsIcon";
-import { ChevronDownIcon } from "./ChevronDownIcon";
-import { SearchIcon } from "./SearchIcon";
 import { columns, users, statusOptions } from "./data";
 import { capitalize } from "./utils";
 import { AddVehicle } from "./add-vehicle";
+import { Vehicle } from "@prisma/client";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { formatDate } from "date-fns";
+import { VerticalDotsIcon } from "../icons/VerticalDotsIcon";
+import { ChevronDownIcon } from "../icons/ChevronDownIcon";
+import { SearchIcon } from "../icons/searchicon";
 
 const statusColorMap: Record<string, ChipProps["color"]> = {
 	active: "success",
@@ -33,11 +40,20 @@ const statusColorMap: Record<string, ChipProps["color"]> = {
 	vacation: "warning",
 };
 
-const INITIAL_VISIBLE_COLUMNS = ["name", "role", "status", "actions"];
+const INITIAL_VISIBLE_COLUMNS = [
+	"registrationNumber",
+	"fitness",
+	"puc",
+	"form10",
+	"insuranceExpiryDate",
+	"nextMaintenanceDate",
+	"actions",
+];
 
 type User = (typeof users)[0];
 
 export default function Vehicles() {
+	const [vehicles, setVehicles] = React.useState<Vehicle[]>([]);
 	const [filterValue, setFilterValue] = React.useState("");
 	const [selectedKeys, setSelectedKeys] = React.useState<Selection>(
 		new Set([])
@@ -52,6 +68,58 @@ export default function Vehicles() {
 		direction: "ascending",
 	});
 
+	const { isOpen, onOpen, onClose, onOpenChange } = useDisclosure();
+	const [currentVehicle, setCurrentVehicle] = React.useState<Vehicle>();
+	const [isDeleting, setIsDeleting] = React.useState(false);
+	const [mode, setMode] = React.useState("");
+	const [isLoading, setIsLoading] = React.useState(true);
+	const router = useRouter();
+
+	const loadingState = isLoading || vehicles?.length === 0 ? "loading" : "idle";
+
+	const fetchVehicles = async () => {
+		setIsLoading(true);
+		try {
+			const response = await fetch("/api/vehicles");
+			if (!response.ok) {
+				throw new Error("Failed to fetch vehicles");
+			}
+			const data = await response.json();
+			setVehicles(data);
+		} catch (error) {
+			console.error("Error fetching vehicles:", error);
+		}
+		setIsLoading(false);
+	};
+
+	React.useEffect(() => {
+		fetchVehicles();
+	}, []);
+
+	React.useEffect(() => {}, [mode, currentVehicle]);
+
+	const deleteVehicle = async (onClose: () => void) => {
+		setIsDeleting(true);
+		try {
+			const response = await fetch(`/api/customers/id/${currentVehicle?.id}`, {
+				method: "DELETE",
+			});
+			if (!response.ok) {
+				toast.error("Failed to delete customer");
+			} else {
+				toast.success("Customer deleted successfully!");
+			}
+		} catch (e) {
+			e instanceof Error
+				? toast.error(e.toString())
+				: toast.error("An error occurred");
+		} finally {
+			setIsDeleting(false);
+			fetchVehicles();
+			onClose();
+		}
+	};
+
 	// const [page, setPage] = React.useState(1);
 
 	const hasSearchFilter = Boolean(filterValue);
@@ -65,24 +133,17 @@ export default function Vehicles() {
 	}, [visibleColumns]);
 
 	const filteredItems = React.useMemo(() => {
-		let filteredUsers = [...users];
+		let filteredUsers = [...vehicles];
 
 		if (hasSearchFilter) {
-			filteredUsers = filteredUsers.filter((user) =>
-				user.name.toLowerCase().includes(filterValue.toLowerCase())
+			filteredUsers = filteredUsers.filter((vehicle) =>
+				vehicle.registrationNumber
+					.toLowerCase()
+					.includes(filterValue.toLowerCase())
 			);
 		}
-		if (
-			statusFilter !== "all" &&
-			Array.from(statusFilter).length !== statusOptions.length
-		) {
-			filteredUsers = filteredUsers.filter((user) =>
-				Array.from(statusFilter).includes(user.status)
-			);
-		}
-
 		return filteredUsers;
-	}, [users, filterValue, statusFilter]);
+	}, [vehicles, filterValue, statusFilter]);
 
 	// const pages = Math.ceil(filteredItems.length / rowsPerPage);
 
@@ -94,70 +155,68 @@ export default function Vehicles() {
 	// }, [page, filteredItems, rowsPerPage]);
 
 	const sortedItems = React.useMemo(() => {
-		return [...filteredItems].sort((a: User, b: User) => {
-			const first = a[sortDescriptor.column as keyof User] as number;
-			const second = b[sortDescriptor.column as keyof User] as number;
+		return [...filteredItems].sort((a: Vehicle, b: Vehicle) => {
+			const first = a[sortDescriptor.column as keyof Vehicle] as number;
+			const second = b[sortDescriptor.column as keyof Vehicle] as number;
 			const cmp = first < second ? -1 : first > second ? 1 : 0;
 
 			return sortDescriptor.direction === "descending" ? -cmp : cmp;
 		});
 	}, [sortDescriptor, filteredItems]);
 
-	const renderCell = React.useCallback((user: User, columnKey: React.Key) => {
-		const cellValue = user[columnKey as keyof User];
+	const renderCell = React.useCallback(
+		(vehicle: Vehicle, columnKey: React.Key) => {
+			const cellValue = vehicle[columnKey as keyof Vehicle];
 
-		switch (columnKey) {
-			case "name":
-				return (
-					<User
-						avatarProps={{ radius: "lg", src: user.avatar }}
-						description={user.email}
-						name={cellValue}
-					>
-						{user.email}
-					</User>
-				);
-			case "role":
-				return (
-					<div className="flex flex-col">
-						<p className="text-bold text-small capitalize">{cellValue}</p>
-						<p className="text-bold text-tiny capitalize text-default-400">
-							{user.team}
-						</p>
-					</div>
-				);
-			case "status":
-				return (
-					<Chip
-						className="capitalize"
-						color={statusColorMap[user.status]}
-						size="sm"
-						variant="flat"
-					>
-						{cellValue}
-					</Chip>
-				);
-			case "actions":
-				return (
-					<div className="relative flex justify-end items-center gap-2">
-						<Dropdown>
-							<DropdownTrigger>
-								<Button isIconOnly size="sm" variant="light">
-									<VerticalDotsIcon className="text-default-300" />
-								</Button>
-							</DropdownTrigger>
-							<DropdownMenu>
-								<DropdownItem>View</DropdownItem>
-								<DropdownItem>Edit</DropdownItem>
-								<DropdownItem>Delete</DropdownItem>
-							</DropdownMenu>
-						</Dropdown>
-					</div>
-				);
-			default:
-				return cellValue;
-		}
-	}, []);
+			switch (columnKey) {
+				case "registrationNumber":
+					return <p>{vehicle.registrationNumber}</p>;
+				case "puc":
+				case "form10":
+				case "insuranceExpiryDate":
+				case "fitness":
+				case "tax":
+				case "lastMaintenanceDate":
+				case "nextMaintenanceDate":
+					return cellValue ? <p>{formatDate(cellValue as Date, "dd-LL-yyyy")}</p> : null;
+				case "actions":
+					return (
+						<div className="relative flex justify-end items-center gap-2">
+							<Dropdown>
+								<DropdownTrigger>
+									<Button isIconOnly size="sm" variant="light">
+										<VerticalDotsIcon className="text-default-300" />
+									</Button>
+								</DropdownTrigger>
+								<DropdownMenu>
+									<DropdownItem>View</DropdownItem>
+									<DropdownItem
+										onClick={() => {
+											setCurrentVehicle(vehicle);
+											setMode("EDIT");
+										}}
+									>
+										Edit
+									</DropdownItem>
+									<DropdownItem
+										onClick={() => {
+											setCurrentVehicle(vehicle);
+											setMode("DELETE");
+											onOpen();
+										}}
+									>
+										Delete
+									</DropdownItem>
+								</DropdownMenu>
+							</Dropdown>
+						</div>
+					);
+				default:
+					return cellValue ? String(cellValue) : null;
+			}
+		},
+		[]
+	);
 
 	// const onNextPage = React.useCallback(() => {
 	//   if (page < pages) {
@@ -252,7 +311,19 @@ export default function Vehicles() {
 								))}
 							</DropdownMenu>
 						</Dropdown>
-						<AddVehicle />
+						<AddVehicle
+							onVehicleAdded={() => {
+								toast.success("Vehicle added successfully!");
+								fetchVehicles();
+							}}
+							mode={mode === "EDIT" ? "EDIT" : "NEW"}
+							currentVehicle={currentVehicle}
+							key={mode}
+							resetMode={() => {
+								setMode("");
+								setCurrentVehicle(undefined);
+							}}
+						/>
 					</div>
 				</div>
 				{/* <div className="flex justify-between items-center">
@@ -279,6 +350,9 @@ export default function Vehicles() {
 		// onRowsPerPageChange,
 		users.length,
 		hasSearchFilter,
+		selectedKeys,
+		mode,
+		currentVehicle,
 	]);
 
 	// const bottomContent = React.useMemo(() => {
@@ -312,6 +386,35 @@ export default function Vehicles() {
 
 	return (
 		<div className="m-4">
+			<Modal
+				isOpen={isOpen}
+				onClose={() => {
+					setCurrentVehicle(undefined);
+					setMode("");
+				}}
+				onOpenChange={onOpenChange}
+				placement="top-center"
+			>
+				<ModalContent>
+					{(onClose) => (
+						<>
+							<ModalHeader>Are you sure you want to delete ?</ModalHeader>
+							<ModalFooter>
+								<Button color="danger" variant="flat" onPress={onClose}>
+									Cancel
+								</Button>
+								<Button
+									isLoading={isDeleting}
+									color="primary"
+									onPress={() => deleteVehicle(onClose)}
+								>
+									Delete
+								</Button>
+							</ModalFooter>
+						</>
+					)}
+				</ModalContent>
+			</Modal>
 			<Table
 				aria-label="Example table with custom cells, pagination and sorting"
 				isHeaderSticky

@@ -20,12 +20,12 @@ import {
 	ChipProps,
 	SortDescriptor,
 } from "@nextui-org/react";
-import { VerticalDotsIcon } from "./VerticalDotsIcon";
-import { ChevronDownIcon } from "./ChevronDownIcon";
-import { SearchIcon } from "./SearchIcon";
 import { columns, users, statusOptions } from "./data";
 import { capitalize } from "./utils";
 import { AddEntry } from "./add-log";
+import { VerticalDotsIcon } from "../icons/VerticalDotsIcon";
+import { SearchIcon } from "../icons/searchicon";
+import { ChevronDownIcon } from "../icons/ChevronDownIcon";
 
 const statusColorMap: Record<string, ChipProps["color"]> = {
 	active: "success",
